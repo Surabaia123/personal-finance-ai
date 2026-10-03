@@ -1,0 +1,13 @@
+### Health Check
+GET http://localhost:8080/api/health
+
+
+### Register User
+POST http://localhost:8080/api/auth/register
+Content-Type: application/json
+
+{
+    "name": "Dian",
+    "email": "dian@example.com",
+    "password": "password123"
+}
