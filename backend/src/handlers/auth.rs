@@ -8,13 +8,17 @@ use axum::{
 };
 
 use argon2::{
-    password_hash::{rand_core::OsRng, PasswordHasher, SaltString},
-    Argon2,
+    Argon2, PasswordHash, PasswordVerifier, password_hash::{PasswordHasher, SaltString, rand_core::OsRng},
 };
+
+use jsonwebtoken::{encode, EncodingKey, Header};
 
 use serde::{Deserialize, Serialize};
 use sqlx::PgPool;
 use ulid::Ulid;
+use std::env;
+use chrono::{Duration, Utc};
+
 
 #[derive(Debug, Deserialize)]
 pub struct RegisterForm {
@@ -97,3 +101,102 @@ if email_exists.is_some() {
 
     Ok((StatusCode::CREATED, Json(response)))
 }
+
+
+
+#[derive(Debug, Deserialize)]
+pub struct LoginForm {
+    pub email: String,
+    pub password: String,
+}
+
+#[derive(Debug, Serialize)]
+pub struct LoginResponse {
+    pub token: String,
+    pub message: String,
+    pub expiration: usize,
+}
+
+#[derive(Debug, Serialize)]
+struct Claims {
+    pub sub: String,
+    pub exp: usize,
+}
+
+
+pub async  fn login(
+    State(pool): State<PgPool>,
+    Json(payload): Json<LoginForm>,
+) -> Result<impl IntoResponse, (StatusCode, String)> {
+
+    let email = payload.email.trim();
+
+    if email.is_empty() {
+        return Err((StatusCode::BAD_REQUEST, "Email is required".to_string()));
+    }
+
+    if payload.password.is_empty() {
+        return Err((StatusCode::BAD_REQUEST, "Password is required".to_string()));
+    }
+    let user= sqlx::query!(
+       
+        "SELECT id, name, email, password_hash FROM users WHERE email = $1",
+        email
+    )
+    .fetch_optional(&pool)
+    .await
+    .map_err(|_| (
+        StatusCode::INTERNAL_SERVER_ERROR,
+        "Database error".to_string(),
+    ))?;
+
+    if user.is_none() {
+        return Err((StatusCode::UNAUTHORIZED, "Invalid email or password".to_string()));
+    }
+
+    let user = user.unwrap();
+
+    let parsed_hash = PasswordHash::new(&user.password_hash).map_err(|_| (
+        StatusCode::INTERNAL_SERVER_ERROR,
+        "Failed to parse password hash".to_string(),
+    ))?;
+
+    if !Argon2::default().verify_password(
+        payload.password.as_bytes(),
+        &parsed_hash,
+    ).is_ok() {
+        return Err((StatusCode::UNAUTHORIZED, "Invalid email or password".to_string()));
+    }
+
+
+    let secret = env::var("JWT_SECRET").expect("JWT_SECRET must be set");
+    let expiration = Utc::now() + Duration::minutes(60);    
+
+    let claims = Claims {
+        sub: user.id.to_string(),
+        exp: expiration.timestamp() as usize,
+    };
+
+   
+
+    let token = encode(
+        &Header::default(),
+        &claims,
+        &EncodingKey::from_secret(secret.as_ref()),
+    )
+    .map_err(|_| (
+        StatusCode::INTERNAL_SERVER_ERROR,
+        "Failed to encode token".to_string(),
+    ))?;
+
+
+    
+
+    let response = LoginResponse {
+        token,
+        message: "Login successful".to_string(),
+        expiration: claims.exp,
+    };
+
+    Ok((StatusCode::OK, Json(response)))
+}   

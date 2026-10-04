@@ -1,13 +1,18 @@
+mod handlers;
+mod middleware;
+mod models;
+mod routes;
+
 use axum::{
+    extract::Extension,
+    middleware as axum_middleware, // Memberi alias 'axum_middleware' agar tidak bentrok dengan mod middleware lokal
     routing::get,
-    Router,
+    Json, Router,
 };
 use sqlx::postgres::PgPoolOptions;
 use std::env;
 
-mod handlers;
-mod models;
-mod routes;
+use crate::middleware::auth::{auth, Claims};
 
 #[tokio::main]
 async fn main() {
@@ -24,9 +29,15 @@ async fn main() {
 
     println!("Connected to PostgreSQL!");
 
+    let protected_routes= Router::new()
+        .route("/me", get(me))
+        .layer(axum_middleware::from_fn(auth));
+
     let app = Router::new()
         .route("/api/health", get(health))
-        .nest("/api/auth", routes::auth::routes(pool));
+        .nest("/api/auth", routes::auth::routes(pool))
+        .nest("/api", protected_routes)
+        ;
 
 
     let listener = tokio::net::TcpListener::bind("0.0.0.0:8080")
@@ -43,4 +54,9 @@ async fn main() {
 }
 async fn health() -> &'static str {
     "OK"
+}
+
+
+async fn me(Extension(claims): Extension<Claims>) -> Json<Claims> {
+    Json(claims)
 }
