@@ -135,6 +135,8 @@ pub async  fn login(
         return Err((StatusCode::BAD_REQUEST, "Email is required".to_string()));
     }
 
+    
+
     if payload.password.is_empty() {
         return Err((StatusCode::BAD_REQUEST, "Password is required".to_string()));
     }

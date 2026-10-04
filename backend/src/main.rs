@@ -31,11 +31,12 @@ async fn main() {
 
     let protected_routes= Router::new()
         .route("/me", get(me))
+        .nest("/categories", routes::category::routes(pool.clone()))
         .layer(axum_middleware::from_fn(auth));
 
     let app = Router::new()
         .route("/api/health", get(health))
-        .nest("/api/auth", routes::auth::routes(pool))
+        .nest("/api/auth", routes::auth::routes(pool.clone()))
         .nest("/api", protected_routes)
         ;
 

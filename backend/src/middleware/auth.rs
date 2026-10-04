@@ -29,7 +29,8 @@ pub async fn auth(mut req: Request, next: Next) -> Result<impl IntoResponse, (St
 let token_data =decode::<Claims>(token, &decoding_key, &Validation::default())
         .map_err(|_| (StatusCode::UNAUTHORIZED, "Invalid token".to_string()))?;
 
-    req.extensions_mut().insert(token_data.claims);
+    req.extensions_mut().insert(token_data.claims.sub);
+    
 
 
     // Proceed to the next middleware or handler

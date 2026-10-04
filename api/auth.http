@@ -1,9 +1,11 @@
-## Health Check
-GET http://localhost:8080/api/health
+@baseUrl = http://localhost:8080
+@token = eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIwMU00MTBZQ0dWNUFSMEZCTk5XMEZDNlczMCIsImV4cCI6MTc5MTA5Njc2M30.L6q2iUwgxxsnSceNvdrqwshwBvlGXz634MZgjA6o9tM
 
+### Health Check
+GET {{baseUrl}}/api/health
 
 ### Register User
-POST http://localhost:8080/api/auth/register
+POST {{baseUrl}}/api/auth/register
 Content-Type: application/json
 
 {
@@ -13,7 +15,7 @@ Content-Type: application/json
 }
 
 ### Login User
-POST http://localhost:8080/api/auth/login
+POST {{baseUrl}}/api/auth/login
 Content-Type: application/json
 
 {
@@ -21,7 +23,33 @@ Content-Type: application/json
     "password": "password123"
 }
 
+### Me Profile
+GET {{baseUrl}}/api/me
+Authorization: Bearer {{token}}
 
-### Me 
-GET http://localhost:8080/api/me
-Authorization: Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJzdWIiOiIwMU00MTBZQ0dWNUFSMEZCTk5XMEZDNlczMCIsImV4cCI6MTc5MTA4NDc3MX0.aIMtGWGfq8ITN8lDI_kn-4ZtVk2SgfjOaENhN0qeOho
+### Create Category - Expense
+POST {{baseUrl}}/api/categories
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+    "name": "Makan",
+    "category_type": "expense"
+}
+
+### Get All Categories
+GET {{baseUrl}}/api/categories
+Authorization: Bearer {{token}}
+
+### Update Category (Gunakan method PUT dan kirimkan ID category di URL)
+PUT {{baseUrl}}/api/categories/01M42GHZ2NMJ9HW0MB9V8S6VDG
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+    "name": "Sedekah"
+}
+
+### Delete Category (Gunakan method DELETE dan kirimkan ID category di URL)
+DELETE {{baseUrl}}/api/categories/01M42GHZ2NMJ9HW0MB9V8S6VDG
+Authorization: Bearer {{token}}
